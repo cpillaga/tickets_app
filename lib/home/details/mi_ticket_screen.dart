@@ -1,80 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_ticket/flutter_ticket.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:tickets_app/home/home_screen.dart';
-import 'package:tickets_app/http/qr_api.dart';
+import 'package:tickets_app/http/user_api.dart';
 import 'package:tickets_app/models/token_provider.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'dart:math';
-
-import 'package:tickets_app/models/user_provider.dart';
 import 'package:tickets_app/utils/format_date.dart';
 
-class DetalleTicketScreen extends StatefulWidget {
-  final double total;
-  final Map<dynamic, dynamic> conciertoData;
-  final int cantidadEntradas;
-
-  const DetalleTicketScreen({super.key, required this.total, required this.conciertoData, required this.cantidadEntradas});
+class MiTicketScreen extends StatefulWidget {
+  final List<Map<dynamic, dynamic>> ticketsInfo;
+  const MiTicketScreen({super.key, required this.ticketsInfo});
 
   @override
-  State<DetalleTicketScreen> createState() => _DetalleTicketScreenState();
+  State<MiTicketScreen> createState() => _MiTicketScreenState();
 }
 
-class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
-  Map<dynamic, dynamic>? detalleUser = {};
-  late List<Map<dynamic, dynamic>> detalleQR = [];
-  late List<Map<dynamic, dynamic>> ticketsComprados = [];
-
+class _MiTicketScreenState extends State<MiTicketScreen> {
+  final UserAPI api = UserAPI();
   final FormatDate date = FormatDate();
   final String urlImages = 'http://157.230.60.3:3002';
-
-  final QrAPI api = QrAPI();
-
-  late String orderId;
-  late String qrCode;
-  late String token;
-
-  bool loading = true;
+  Map<dynamic, dynamic>? detalleUser = {};
+  late String ownerId = '';
+  String token = TokenProvider().getToken();
 
   @override
   void initState() {
     super.initState();
-    orderId = generateRandomOrderId();
-    detalleUser = UserProvider().getUser();
-    token = TokenProvider().getToken();
-    getQRCode();
+    getUserData();
   }
 
-  String generateRandomOrderId() {
-    var random = Random();
-    return (random.nextInt(900000) + 100000).toString();
-  }
-
-  Future<void> getQRCode() async {
+  Future<void> getUserData() async {
     try {
-      var response = await api.handleTicket(widget.conciertoData['id'], token, widget.cantidadEntradas);
-
-      for (var values in response) {
-        setState(() {
-          detalleQR.add({'qrCode': values['qrCode']});
-        });
-      }
-    } 
-    catch (e) {
+      detalleUser = await api.handleUser(widget.ticketsInfo[0]['ownerId'], token);
+      setState(() {});
+    } catch (e) {
       setState(() {});
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    Map<dynamic, dynamic> detalleConcierto = widget.conciertoData;
-    int totalEntradas = widget.cantidadEntradas;
+    List<Map<dynamic, dynamic>> info = widget.ticketsInfo;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(55), // Aumento el alto del AppBar
+        preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.07),
         child: AppBar(
           backgroundColor: Colors.black,
           elevation: 0,
@@ -89,7 +59,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                     child: const Align(
                       alignment: Alignment.bottomCenter,
                       child: Text(
-                        'Detalle del ticket',
+                        'Ticket',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -157,7 +127,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                     ),
                                     const Spacer(),
                                     Text(
-                                      "Orden ID: $orderId",
+                                      "Ticket ID: " + info[0]['id'],
                                       style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
                                     ),
                                   ],
@@ -167,7 +137,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(10),
                                     child: Image.network(
-                                      urlImages + detalleConcierto['imagePath'],
+                                      urlImages + info[0]['imagePath'],
                                       fit: BoxFit.cover,
                                       height: 120,
                                       width: double.infinity,
@@ -176,7 +146,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 Text(
-                                  detalleConcierto['title'],
+                                  info[0]['title'],
                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 const Text(
@@ -191,7 +161,14 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         const Text("Evento", style: TextStyle(color: Colors.grey)),
-                                        Text(detalleConcierto['title']),
+                                        SizedBox(
+                                          width: MediaQuery.of(context).size.width * 0.5,
+                                          child: Text(
+                                            info[0]['title'],
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 2,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                     Column(
@@ -201,7 +178,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                         SizedBox(
                                             //color: Colors.blue,
                                             width: MediaQuery.of(context).size.width * 0.23,
-                                            child: Text(totalEntradas.toString())),
+                                            child: const Text('1')),
                                       ],
                                     ),
                                   ],
@@ -214,7 +191,9 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         const Text("Fecha", style: TextStyle(color: Colors.grey)),
-                                        Text(date.formatDate(detalleConcierto['date'])),
+                                        Text(
+                                          date.formatDate(info[0]['date']),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -234,7 +213,6 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                         children: [
                                           Container(
-                                            //color: Colors.blue,
                                             margin: const EdgeInsets.fromLTRB(5, 5, 15, 5),
                                             child: const CircleAvatar(
                                               radius: 30,
@@ -299,39 +277,23 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                               color: Colors.white,
                             )
                           ],
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  CarouselSlider(
-                                    options: CarouselOptions(
-                                      height: 250.0,
-                                      enlargeCenterPage: true,
-                                      enableInfiniteScroll: false,
-                                      autoPlay: false,
-                                      initialPage: 0,
-                                    ),
-                                    items: detalleQR.asMap().entries.map((entry) {
-                                      Map<dynamic, dynamic> qrData = entry.value;
-                                      return Builder(
-                                        builder: (BuildContext context) {
-                                          return Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              QrImageView(
-                                                data: qrData['qrCode'].toString(),
-                                                version: QrVersions.auto,
-                                                size: 200.0,
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      );
-                                    }).toList(),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              children: [
+                                Center(
+                                  child: Column(
+                                    children: [
+                                      QrImageView(
+                                        data: info[0]['qrCode'].toString(),
+                                        version: QrVersions.auto,
+                                        size: 200.0,
+                                      ),
+                                      const SizedBox(height: 10),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -351,7 +313,7 @@ class _DetalleTicketScreenState extends State<DetalleTicketScreen> {
                               ),
                             ),
                             child: const Text(
-                              'Descargar Tickets',
+                              'Descargar Ticket',
                               style: TextStyle(
                                 color: Colors.white,
                               ),

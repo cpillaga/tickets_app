@@ -3,6 +3,7 @@ import 'package:tickets_app/http/login_api.dart';
 import 'package:tickets_app/login/register_screen.dart';
 import 'package:tickets_app/models/token_provider.dart';
 import 'package:tickets_app/home/home_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -12,25 +13,47 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
+  
   final LoginAPI api = LoginAPI();
 
   TextEditingController handleLoginEmail = TextEditingController();
   TextEditingController handleLoginPassword = TextEditingController();
 
+  bool loading = false;
   bool isObscure = true;
   bool checkRemember = true;
 
-  Future<void> buttonLogin(String email, String password) async {
+  late bool correctLogin = false;
 
+  late bool emailError = false;
+  late bool passwordError = false;
+
+  late String message = '';
+
+  Future<void> buttonLogin(String email, String password) async {
     try {
       Map<String, dynamic> response = await api.handleSesion(email, password);
-      TokenProvider().setToken(response['token']);
+
+      if (response.containsKey('token') && response['token'].isNotEmpty) {
+
+        await TokenProvider().setToken(response['token']);
+        await TokenProvider().setIdUser(response['userId']);
+        setState(() {
+          correctLogin = true;
+        });
+
+      } 
+      else {
+        setState(() {
+          correctLogin = false;
+        });
+      }
     } 
     catch (e) {
-      print('Error: $e');
+      setState(() {
+        correctLogin = false;
+      });
     }
-
   }
 
   @override
@@ -43,13 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
             shrinkWrap: true,
             children: [
               Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.all(10), 
-              ),
-              Container(
-                  padding: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.only(bottom: 5),
                   child: Column(children: [
-                    Container(
+                    SizedBox(
                       width: 200,
                       height: 100,
                       child: ClipRRect(
@@ -67,39 +86,39 @@ class _LoginScreenState extends State<LoginScreen> {
                     )
                   ])),
               Container(
-                  padding: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.only(top: 15, bottom: 20),
                   child: Column(children: [
                     Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(10),
-                      child: const Text('Bienvenido',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 30,
-                            fontFamily: 'Roboto-Black',
+                      child: Text('Bienvenido',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 26,
                           )),
                     ),
                     Container(
                       alignment: Alignment.center,
                       padding: const EdgeInsets.all(1),
-                      child: const Text(
+                      child: Text(
                         'Por favor, introduce tus datos',
-                        style: TextStyle(color: Color.fromARGB(255, 136, 136, 136), fontWeight: FontWeight.w400, fontSize: 15, fontFamily: 'Roboto-Black'),
+                        style: GoogleFonts.poppins(color: const Color.fromARGB(255, 136, 136, 136), fontWeight: FontWeight.w400, fontSize: 15),
                       ),
                     ),
                   ])),
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
                 child: TextField(
                   controller: handleLoginEmail,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
+                    //labelText: emailError == true ? 'Ups! No se ha encontrado el correo' : 'Correo Electronico',
                     labelText: 'Correo Electronico',
-                    labelStyle: const TextStyle(color: Color.fromARGB(255, 136, 136, 136), fontFamily: 'Roboto-Medium', fontSize: 16, fontWeight: FontWeight.w300),
-                    border: UnderlineInputBorder(),
-                    enabledBorder: UnderlineInputBorder(
+                    labelStyle: GoogleFonts.poppins(color: const Color.fromARGB(255, 136, 136, 136), fontSize: 15, fontWeight: FontWeight.w400),
+                    border: const UnderlineInputBorder(),
+                    enabledBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
                     ),
-                    focusedBorder: UnderlineInputBorder(
+                    focusedBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
                     ),
                   ),
@@ -112,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: handleLoginPassword,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
-                    labelStyle: const TextStyle(color: Color.fromARGB(255, 136, 136, 136), fontFamily: 'Roboto-Medium', fontSize: 16, fontWeight: FontWeight.w300),
+                    labelStyle: GoogleFonts.poppins(color: const Color.fromARGB(255, 136, 136, 136), fontSize: 15, fontWeight: FontWeight.w400),
                     border: const UnderlineInputBorder(),
                     enabledBorder: const UnderlineInputBorder(
                       borderSide: BorderSide(color: Colors.grey),
@@ -138,11 +157,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        print('Ir a Recuperar contraseña');
                       },
-                      child: const Text(
+                      child: Text(
                         '¿Olvidaste la contraseña?',
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.w800, fontSize: 15, fontFamily: 'Roboto-Bold'),
+                        style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                     ),
                   ],
@@ -158,74 +176,149 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                  child: const Text(
-                    'Iniciar Sesion',
-                    style: TextStyle(
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: loading
+                      ? const Center(
+                          child: SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              )),
+                        )
+                      : Text(
+                          'Iniciar Sesion',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                          ),
+                        ),
                   onPressed: () async {
-                    
+                    bool emailValid = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(handleLoginEmail.text);
+
+                    if (handleLoginEmail.text.isEmpty || handleLoginPassword.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Debe completar todos los campos')),
+                      );
+                      return;
+                    }
+
+                    if (emailValid == false) {
+                      setState(() {
+                        emailError = true;
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('El formato del correo es incorrecto')),
+                      );
+                      return;
+                    }
+
+                    setState(() {
+                      loading = true;
+                    });
+
                     await buttonLogin(handleLoginEmail.text, handleLoginPassword.text);
                     String checkToken = TokenProvider().getToken();
 
-                    if (checkToken.length > 0) {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
-                    }
+                    if (correctLogin == true) {
+                      if (checkToken.length > 0) {
+                        setState(() {
+                          loading = false;
+                        });
 
-                    //Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
-
-                    //buttonLogin();
-
-                    /*
-                    bool emailValid = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(handleLoginEmail.text);
-
-                    if (emailValid == true) {
-                      if (testMail != handleLoginEmail.text) {
-                        showDialog(
-                          context: context,
-                          builder: (builder_context) => AlertDialog(
-                            title: const Text("Login Incorrecto"),
-                            content: const Text("El usuario no se encuentra registrado, revisa tu correo o tu contraseña"),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(builder_context).pop();
-                                },
-                                child: Container(
-                                  color: Colors.white,
-                                  padding: const EdgeInsets.all(14),
-                                  child: const Text("ACEPTAR"),
-                                ),
-                              ),
-                            ],
-                          ),
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Ingreso correcto')),
                         );
-                      } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+                        return;
                       }
                     } else {
+                      setState(() {
+                        emailError = true;
+                        passwordError = true;
+                        loading = false;
+                      });
+                      
                       showDialog(
                         context: context,
-                        builder: (builder_context) => AlertDialog(
-                          title: const Text("Email Incorrecto"),
-                          content: const Text("Revisa el formato de tu correo por favor"),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(builder_context).pop();
-                              },
-                              child: Container(
-                                color: Colors.white,
-                                padding: const EdgeInsets.all(14),
-                                child: const Text("ACEPTAR"),
-                              ),
+                        builder: (builder_context) => Dialog(
+                          child: Container(
+                            width: MediaQuery.of(context).size.width * 0.95,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15.0),
                             ),
-                          ],
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.mood_bad, 
+                                  color: Colors.red,
+                                  size: 100,
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  "ERROR!",
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 20, 
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center, 
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  "Ups! El correo electrónico o la contraseña son incorrectos",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 14, 
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center, // Centra el texto
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  "Por favor, inténtalo de nuevo",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 14, 
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 20),
+                                SizedBox(
+                                  //width: MediaQuery.of(context).size.width * 0.3,
+                                  width: 91,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.of(builder_context).pop();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20.0),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+                                    ),
+                                    child: const Text(
+                                      "OK",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
+
                     }
-                    */
                   },
                 ),
               ),
@@ -239,80 +332,29 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Iniciar Sesion como Invitado',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       color: Colors.white,
                     ),
                   ),
-                  onPressed: () async {
-                    /*
-                    bool emailValid = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(handleLoginEmail.text);
-
-                    if (emailValid == true) {
-                      if (testMail != handleLoginEmail.text) {
-                        showDialog(
-                          context: context,
-                          builder: (builder_context) => AlertDialog(
-                            title: const Text("Login Incorrecto"),
-                            content: const Text("El usuario no se encuentra registrado, revisa tu correo o tu contraseña"),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(builder_context).pop();
-                                },
-                                child: Container(
-                                  color: Colors.white,
-                                  padding: const EdgeInsets.all(14),
-                                  child: const Text("ACEPTAR"),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => HomeScreen()));
-                      }
-                    } else {
-                      showDialog(
-                        context: context,
-                        builder: (builder_context) => AlertDialog(
-                          title: const Text("Email Incorrecto"),
-                          content: const Text("Revisa el formato de tu correo por favor"),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(builder_context).pop();
-                              },
-                              child: Container(
-                                color: Colors.white,
-                                padding: const EdgeInsets.all(14),
-                                child: const Text("ACEPTAR"),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    */
-                  },
+                  onPressed: () async {},
                 ),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     '¿No tienes una cuenta?',
-                    style: TextStyle(color: Color.fromARGB(255, 136, 136, 136), fontFamily: 'Roboto', fontWeight: FontWeight.w400),
+                    style: GoogleFonts.poppins(color: Color.fromARGB(255, 136, 136, 136), fontWeight: FontWeight.w400),
                   ),
                   TextButton(
                     onPressed: () {
-                      final route = MaterialPageRoute(builder: (context) => const RegisterScreen());
-                      Navigator.push(context, route);
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
                     },
-                    child: const Text(
+                    child: Text(
                       'Registrate ahora',
-                      style: TextStyle(color: Color.fromARGB(255, 136, 136, 136), fontFamily: 'Roboto', fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(color: Color.fromARGB(255, 136, 136, 136), fontWeight: FontWeight.w600),
                     ),
                   )
                 ],

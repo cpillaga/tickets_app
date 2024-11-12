@@ -3,9 +3,13 @@ import 'package:cart_stepper/cart_stepper.dart';
 import 'package:rich_readmore/rich_readmore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:tickets_app/home/home_screen.dart';
 import 'package:tickets_app/home/payments/payments_screen.dart';
+import 'package:tickets_app/home/profile/profile_screen.dart';
 import 'package:tickets_app/http/user_api.dart';
 import 'package:tickets_app/models/token_provider.dart';
+import 'package:tickets_app/models/user_provider.dart';
+import 'package:tickets_app/utils/format_date.dart';
 
 class DetallesScreen extends StatefulWidget {
   final Map<dynamic, dynamic> concierto;
@@ -16,7 +20,10 @@ class DetallesScreen extends StatefulWidget {
 }
 
 class _DetallesScreenState extends State<DetallesScreen> {
+  
   final UserAPI api = UserAPI();
+  final FormatDate date = FormatDate();
+
   final String urlImages = 'http://157.230.60.3:3002';
 
   String token = TokenProvider().getToken();
@@ -32,38 +39,33 @@ class _DetallesScreenState extends State<DetallesScreen> {
   double total = 0.0;
   num totalTickets = 0;
 
-  Future<void> getUserData() async { 
-    try {
-      userData = await api.handleUser(conciertosPrecios!['id'] ,token);
-      print("Token: $userData");
-      setState(() {});
-    } catch (e) {
-      print('Error: $e');
-    }
-  } 
-
-  void onItemTapped(int index) {
-    setState(() {
-      menuIndex = index;
-    });
-
-    if (index == 1) {
-      print("Pantalla Bolsa");
-    } else if (index == 2) {
-      print("Pantalla Persona");
-    }
-  }
-
   @override
   void initState() {
     super.initState();
+    menuIndex = 0;
     getData();
     getUserData();
   }
 
+  Future<void> getUserData() async {
+    conciertosPrecios = widget.concierto;
+
+    try {
+      userData = await api.handleUser(conciertosPrecios!['ownerId'], token);
+      UserProvider().setUser(userData);
+      setState(() {});
+    } catch (e) {
+      setState(() {});
+    }
+  }
+
   void getData() {
-    for (var values in widget.concierto['stages']) {
-      conciertosData.add({'precio': values['price'], 'cantidad': 0, 'tipo': values['name']});
+    if (widget.concierto['stages'].length > 0) {
+      for (var values in widget.concierto['stages']) {
+        conciertosData.add({'precio': values!['price'], 'cantidad': 0, 'tipo': values['name']});
+      }
+    } else {
+      conciertosData.add({'precio': widget.concierto['price'], 'cantidad': 0, 'tipo': 'General'});
     }
   }
 
@@ -78,6 +80,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
     totalTickets = 0;
     for (var precioData in conciertosData) {
       totalTickets += precioData!['cantidad'];
+      setState(() {});
     }
   }
 
@@ -86,16 +89,11 @@ class _DetallesScreenState extends State<DetallesScreen> {
     final Map<dynamic, dynamic>? concierto = widget.concierto;
     conciertosPrecios = concierto;
 
-    setState(() {
-      print("Conciertos: $userData");
-    });
-
-
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(55), // Aumento el alto del AppBar
+        preferredSize: Size.fromHeight(MediaQuery.of(context).size.height * 0.07),
+        //preferredSize: Size.fromHeight(55),
         child: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -137,7 +135,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                   Container(
                     //color: Colors.white,
                     padding: const EdgeInsets.all(15),
-                    //margin: const EdgeInsets.symmetric(vertical: 10),
+                    //margin: const EdgeInsets.symmetric(vertical: 10), 
                     width: MediaQuery.of(context).size.width * 1,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -153,9 +151,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                     child: Column(
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            print('Tocaste la imagen');
-                          },
+                          onTap: () {},
                           child: Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(15),
@@ -179,7 +175,6 @@ class _DetallesScreenState extends State<DetallesScreen> {
                         const SizedBox(height: 2),
                         GestureDetector(
                           onTap: () {
-                            print('Tocaste la información del evento');
                           },
                           child: Container(
                             padding: const EdgeInsets.all(10),
@@ -234,7 +229,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                           ),
                                           const SizedBox(height: 5),
                                           Text(
-                                            concierto['date'],
+                                            date.formatDate(concierto['date']),
                                             style: const TextStyle(
                                               color: Color.fromARGB(255, 133, 133, 133),
                                               fontFamily: 'Roboto',
@@ -274,7 +269,6 @@ class _DetallesScreenState extends State<DetallesScreen> {
                           ),
                           child: Column(
                             children: [
-                              // Generar Cards dinámicamente basados en el array de precios
                               Column(
                                 children: conciertosData.map((precioData) {
                                   return Container(
@@ -282,11 +276,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                     height: 60,
                                     decoration: const BoxDecoration(
                                       color: Color.fromARGB(255, 229, 231, 235),
-                                      // border: Border.all(
-                                      //   color: Colors.black,
-                                      //   width: 2.0,
-                                      // ),
-                                      borderRadius: const BorderRadius.all(Radius.circular(15)),
+                                      borderRadius: BorderRadius.all(Radius.circular(15)),
                                     ),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -315,20 +305,19 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                           ],
                                         ),
 
-                                        // Segunda columna: Información general
                                         Column(
                                           //crossAxisAlignment: CrossAxisAlignment.center,
                                           children: [
                                             Container(
                                               width: MediaQuery.of(context).size.width * 0.30,
                                               height: MediaQuery.of(context).size.height * 0.03,
-                                              margin: EdgeInsets.only(top: 5),
+                                              margin: const EdgeInsets.only(top: 5),
                                               //color: Colors.blue,
                                               //margin: EdgeInsets.only(top: 3),
                                               child: Padding(
-                                                padding: EdgeInsets.only(top: 3),
+                                                padding: const EdgeInsets.only(top: 3),
                                                 child: Text(
-                                                  precioData['tipo'],
+                                                  precioData['tipo'] ?? '',
                                                   style: const TextStyle(
                                                     fontSize: 16,
                                                     fontFamily: 'Roboto',
@@ -337,7 +326,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                                 ),
                                               ),
                                             ),
-                                            Container(
+                                            SizedBox(
                                               width: MediaQuery.of(context).size.width * 0.30,
                                               height: MediaQuery.of(context).size.height * 0.02,
                                               //color: Colors.blue,
@@ -356,7 +345,6 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                             ),
                                           ],
                                         ),
-                                        // Tercera columna: CartStepperInt
                                         CartStepperInt(
                                           alwaysExpanded: true,
                                           value: precioData['cantidad'],
@@ -369,14 +357,7 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                               calcularTotalTickets();
                                             });
                                           },
-                                          style: const CartStepperStyle(
-                                              //buttonAspectRatio: 1,
-                                              foregroundColor: Colors.black,
-                                              activeForegroundColor: Colors.white,
-                                              activeBackgroundColor: Color(0xFFef7c21),
-                                              //border: Border.all(color: Colors.blue),
-                                              radius: Radius.elliptical(10, 10),
-                                              textStyle: TextStyle(fontFamily: 'Roboto', fontSize: 35, fontWeight: FontWeight.w500)),
+                                          style: const CartStepperStyle(foregroundColor: Colors.black, activeForegroundColor: Colors.white, activeBackgroundColor: Color(0xFFef7c21), radius: Radius.elliptical(10, 10), textStyle: TextStyle(fontFamily: 'Roboto', fontSize: 35, fontWeight: FontWeight.w500)),
                                         ),
                                       ],
                                     ),
@@ -482,13 +463,13 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                         urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                         userAgentPackageName: 'dev.fleaflet.flutter_map.example',
                                       ),
-                                      CircleLayer(circles: [CircleMarker(point: LatLng(37.7749, -122.4194), radius: 30, color: Colors.blue.withOpacity(0.3))])
+                                      CircleLayer(circles: [CircleMarker(point: const LatLng(37.7749, -122.4194), radius: 30, color: Colors.blue.withOpacity(0.3))])
                                     ],
                                   ),
                                 ),
                                 Container(
-                                    margin: EdgeInsets.fromLTRB(0, 5, 5, 15),
-                                    padding: EdgeInsets.fromLTRB(0, 10, 5, 0),
+                                    margin: const EdgeInsets.fromLTRB(0, 5, 5, 15),
+                                    padding: const EdgeInsets.fromLTRB(0, 10, 5, 0),
                                     width: MediaQuery.of(context).size.width * 0.8,
                                     child: const Row(
                                       children: [
@@ -528,20 +509,23 @@ class _DetallesScreenState extends State<DetallesScreen> {
                                       child: Icon(Icons.person),
                                     ),
                                   ),
-                                  const Column(
+                                  Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        //concierto['organizador'] ?? "",
-                                        '',
-                                        style: TextStyle(
-                                          fontFamily: 'Roboto',
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
+
+                                      SizedBox(
+                                        width: MediaQuery.of(context).size.width * 0.25,
+                                        child: Text(
+                                          userData!['name'] ?? "",
+                                          style: const TextStyle(
+                                            fontFamily: 'Roboto',
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
                                         ),
                                       ),
-                                      SizedBox(height: 2),
-                                      Text(
+                                      const SizedBox(height: 2),
+                                      const Text(
                                         "Organizador",
                                         style: TextStyle(
                                           fontSize: 12,
@@ -579,13 +563,10 @@ class _DetallesScreenState extends State<DetallesScreen> {
               child: Column(
                 children: [
                   Row(
-                    //mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        // color: Colors.green,
                         width: MediaQuery.of(context).size.width * 0.925,
                         padding: const EdgeInsets.all(10),
-                        //margin: const EdgeInsets.symmetric(vertical: 5),
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.all(Radius.circular(15)),
@@ -622,15 +603,15 @@ class _DetallesScreenState extends State<DetallesScreen> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
+            //backgroundColor: Colors.red,
             icon: Column(
               children: [
                 const Icon(Icons.home),
                 if (menuIndex == 0)
                   Container(
-                    //margin: const EdgeInsets.only(top: 2),
+                    margin: const EdgeInsets.only(top: 2),
                     width: 8,
                     height: 8,
                     decoration: const BoxDecoration(
@@ -643,7 +624,6 @@ class _DetallesScreenState extends State<DetallesScreen> {
             label: '',
           ),
           BottomNavigationBarItem(
-            backgroundColor: Colors.white,
             icon: Column(
               children: [
                 const Icon(Icons.shopping_bag),
@@ -667,7 +647,6 @@ class _DetallesScreenState extends State<DetallesScreen> {
                 const Icon(Icons.person),
                 if (menuIndex == 2)
                   Container(
-                    //color: Colors.blue,
                     margin: const EdgeInsets.only(top: 2),
                     width: 8,
                     height: 8,
@@ -683,7 +662,40 @@ class _DetallesScreenState extends State<DetallesScreen> {
         ],
         currentIndex: menuIndex,
         selectedItemColor: Colors.orange,
-        onTap: onItemTapped,
+        onTap: (index) {
+          setState(() {
+            menuIndex = index;
+
+            if (index == 0) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HomeScreen(),
+                ),
+              );
+            }
+
+            if (index == 1) {
+              /*
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => TicketsListScreen(),
+                ),
+              );
+              */
+            }
+
+            if (index == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            }
+          });
+        },
       ),
     );
   }

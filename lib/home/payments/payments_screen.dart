@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tickets_app/home/payments/add_card_screen.dart';
+import 'package:tickets_app/home/details/detalle_ticket_screen.dart';
+import 'package:tickets_app/http/stripe_api.dart';
 
 class PaymentsScreen extends StatefulWidget {
 
@@ -19,6 +20,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
   bool paymentStripe = false;
   bool paymentTransfer = false;
 
+  Map<dynamic, dynamic> res = {};
+
   @override
   Widget build(BuildContext context) {
 
@@ -31,13 +34,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
     double impuesto = 1.13;
 
     double total = valorTotal + descuento + cargoServicio + impuesto;
+    int totalInt = (total * 100).round();
 
-    final String urlImages = 'http://157.230.60.3:3002';
+    String urlImages = 'http://157.230.60.3:3002';
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60), // Aumento el alto del AppBar
+        preferredSize: const Size.fromHeight(60),
         child: AppBar(
           //backgroundColor: Colors.white,
           elevation: 0,
@@ -86,14 +90,14 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                     children: [
                       GestureDetector(
                         onTap: () {
-                          print('Tocaste la imagen');
+                         
                         },
                         child: Container(),
                       ),
                       const SizedBox(height: 2),
                       GestureDetector(
                         onTap: () {
-                          print('Tocaste la información del evento');
+                          
                         },
                         child: Container(
                           width: MediaQuery.of(context).size.width * 0.95,
@@ -107,16 +111,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                  //color: Colors.green,
-                                  //width: MediaQuery.of(context).size.width * 0.9,
-                                  //padding: const EdgeInsets.all(5),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Row(
                                     children: [
                                       Container(
-                                        margin: EdgeInsets.fromLTRB(7, 5, 5, 5),
+                                        margin: const EdgeInsets.fromLTRB(7, 5, 5, 5),
                                         child: ClipRRect(
                                           borderRadius: const BorderRadius.only(
                                             topLeft: Radius.circular(15),
@@ -125,17 +126,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                             bottomRight: Radius.circular(15),
                                           ),
                                           child: Image.network(
-                                            urlImages+concierto!['imagePath'], // Mostramos la imagen
+                                            urlImages + concierto!['imagePath'],
                                             fit: BoxFit.cover,
                                             width: MediaQuery.of(context).size.width * 0.25,
                                             height: MediaQuery.of(context).size.height * 0.116,
                                           ),
                                         ),
                                       ),
-                                      Container(
-                                        //color: Colors.deepPurple,
+                                      SizedBox(
                                         width: MediaQuery.of(context).size.width * 0.58,
-                                        //height: MediaQuery.of(context).size.height * 0.13,
                                         child: Column(
                                           children: [
                                             Container(
@@ -179,13 +178,13 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                                       ),
                                                     ),
                                                     Container(
-                                                        margin: EdgeInsets.only(left: 5),
+                                                        margin: const EdgeInsets.only(left: 5),
                                                         child: const Align(
                                                           alignment: Alignment.centerLeft,
                                                           child: Text(
                                                             ' /Subtotal',
                                                             textAlign: TextAlign.left,
-                                                            style: const TextStyle(color: Colors.grey, fontFamily: 'Roboto', fontSize: 13, fontWeight: FontWeight.w400),
+                                                            style: TextStyle(color: Colors.grey, fontFamily: 'Roboto', fontSize: 13, fontWeight: FontWeight.w400),
                                                           ),
                                                         ))
                                                   ],
@@ -241,7 +240,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                             Container(
                                               //color: Colors.green,
                                               width: MediaQuery.of(context).size.width * 0.15,
-                                              padding: EdgeInsets.only(left: 20),
+                                              padding: const EdgeInsets.only(left: 20),
                                               height: MediaQuery.of(context).size.height * 0.1,
                                               child: const Icon(
                                                 Icons.credit_card,
@@ -260,20 +259,18 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                                       style: TextStyle(fontSize: 15, color: Color.fromARGB(255, 143, 143, 143), fontFamily: 'Roboto', fontWeight: FontWeight.w400),
                                                     ))),
                                             Container(
-                                              //color: Colors.blue,
-                                              margin: EdgeInsets.only(left: 50),
+                                              margin: const EdgeInsets.only(left: 50),
                                               width: MediaQuery.of(context).size.width * 0.15,
                                               height: MediaQuery.of(context).size.height * 0.1,
                                               child: Transform.scale(
-                                                scale: 1.1, // Escalar para que se vea más grande
+                                                scale: 1.1,
                                                 child: Checkbox(
                                                   shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(30), // Hacer el checkbox redondo
+                                                    borderRadius: BorderRadius.circular(30), 
                                                   ),
                                                   value: paymentStripe,
                                                   activeColor: Colors.black,
                                                   onChanged: (bool? value) {
-                                                    print("Stripe");
                                                     setState(() {
                                                       paymentStripe = value ?? false;
                                                       if (paymentStripe) {
@@ -299,17 +296,15 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                           mainAxisAlignment: MainAxisAlignment.start,
                                           children: [
                                             Container(
-                                              //color: Colors.red,
                                               width: MediaQuery.of(context).size.width * 0.15,
                                               height: MediaQuery.of(context).size.height * 0.1,
-                                              padding: EdgeInsets.only(left: 17),
+                                              padding: const EdgeInsets.only(left: 17),
                                               child: const Icon(
                                                 Icons.credit_card,
-                                                color: Color.fromARGB(255, 143, 143, 143), // Icono para la fecha
+                                                color: Color.fromARGB(255, 143, 143, 143),
                                               ),
                                             ),
                                             Container(
-                                                //color: Colors.grey,
                                                 width: MediaQuery.of(context).size.width * 0.45,
                                                 height: MediaQuery.of(context).size.height * 0.1,
                                                 padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -321,19 +316,18 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                                     ))),
                                             Container(
                                                 //color: Colors.blue,
-                                                margin: EdgeInsets.only(left: 47),
+                                                margin: const EdgeInsets.only(left: 47),
                                                 width: MediaQuery.of(context).size.width * 0.15,
                                                 height: MediaQuery.of(context).size.height * 0.1,
                                                 child: Transform.scale(
-                                                  scale: 1.1, // Escalar para que se vea más grande
+                                                  scale: 1.1,
                                                   child: Checkbox(
                                                     shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(30), // Hacer el checkbox redondo
+                                                      borderRadius: BorderRadius.circular(30),
                                                     ),
                                                     value: paymentTransfer,
                                                     activeColor: Colors.black,
                                                     onChanged: (bool? value) {
-                                                      print("transferencia");
                                                       setState(() {
                                                         paymentTransfer = value ?? false;
                                                         if (paymentTransfer) {
@@ -355,29 +349,22 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                         ),
                       ),
                       Container(
-                          //color: Colors.white,
                           margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
                           width: MediaQuery.of(context).size.width * 0.93,
-                          //height: MediaQuery.of(context).size.width * 0.56,
                           decoration: const BoxDecoration(
-                            //color: Colors.orange,
                             borderRadius: BorderRadius.all(Radius.circular(15)),
                           ),
                           child: Column(
                             children: [
                               Container(
-                                //color: Colors.red,
                                 margin: const EdgeInsets.fromLTRB(10, 10, 10, 2),
-                                //padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
                                 width: MediaQuery.of(context).size.width * 0.92,
-                                //height: MediaQuery.of(context).size.height * 0.5,
                                 child: const Text(
                                   "Detalles de compra",
                                   style: TextStyle(fontFamily: 'Roboto', fontSize: 15, fontWeight: FontWeight.w600),
                                 ),
                               ),
                               Container(
-                                  //color: Colors.white,
                                   margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
                                   padding: const EdgeInsets.fromLTRB(5, 7, 5, 7),
                                   width: MediaQuery.of(context).size.width * 0.92,
@@ -391,7 +378,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                     children: [
                                       Column(
                                         children: [
-                                          Container(
+                                          SizedBox(
                                             width: MediaQuery.of(context).size.width * 0.43,
                                             //color: Colors.cyan,
                                             child: Column(
@@ -451,7 +438,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                       ),
                                       Column(
                                         children: [
-                                          Container(
+                                          SizedBox(
                                             width: MediaQuery.of(context).size.width * 0.43,
                                             //color: Colors.cyan,
                                             child: Column(
@@ -530,7 +517,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Container(
+                                      SizedBox(
                                         //color: Colors.red,
                                         width: MediaQuery.of(context).size.width * 0.435,
                                         child: const Text(
@@ -567,18 +554,26 @@ class _PaymentsScreenState extends State<PaymentsScreen> {
                                     'Pagar Ahora',
                                     style: TextStyle(color: Colors.white, fontFamily: 'Roboto', fontSize: 15, fontWeight: FontWeight.w600),
                                   ),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     if (paymentStripe) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => AddCardScreen(total: total, concierto: concierto, cantidad: cantidadEntradas),
-                                        ),
-                                      );
-                                    } else {
-                                      print("Transferencia");
+                                      bool paymentSuccess = await StripeAPI.api.makePayment(totalInt);
+
+                                      if (paymentSuccess) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => DetalleTicketScreen(total: total, conciertoData: concierto, cantidadEntradas: cantidadEntradas),
+                                          ),
+                                        );
+                                      } else {
+                                      
+                                      }
+                                    } 
+                                    else {
+                                      
                                     }
                                   },
+
                                 ),
                               ),
                             ],
